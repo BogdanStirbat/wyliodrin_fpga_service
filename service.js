@@ -3,6 +3,8 @@ var app = express();
 var path = require("path");
 var application_root = __dirname;
 
+var settings = require ('./settings.js');
+
 app.configure(function () {
     app.use(express.bodyParser());
     app.use(express.methodOverride());
@@ -19,11 +21,6 @@ app.post("/build", function(req, res){
 	console.log(req.body);
 	console.log(req.body.archive_url);
 	console.log(req.body.type);
-	/*
-	var build_data = JSON.parse(req.body);
-	console.log("archive_url: " + build_data["archive_url"]);
-	console.log("type: " + build_data["type"]);
-	*/
 	res.send("ok build");
 });
 
@@ -31,6 +28,9 @@ app.get("/load", function(req, res){
 	res.send("ok load");
 });
 
-app.listen(3000, "localhost", function(){
-	console.log("server started");
+console.log("buildFolder: " + settings.buildFolder);
+console.log("sec_to_timeout: " + settings.sec_to_timeout);
+console.log("nr_parallel_builds: " + settings.nr_parallel_builds);
+app.listen(settings.port, "localhost", function(){
+	console.log("server started on port: " + settings.port);
 });
