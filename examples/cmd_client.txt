@@ -1,2 +1,2 @@
 # post an valid POST request to server 
-curl -X POST  -H "Content-Type: application/json" -d '{"archive_url": "https://github.com/BogdanStirbat/wyliodrin_fpga_service/examples/fpga_zip_projects/fpga_example_project_ok.zip","type": "fpga"}' http://localhost:3000/build
+curl -X POST  -H "Content-Type: application/json" -d '{"archive_url": "https://github.com/BogdanStirbat/wyliodrin_fpga_service/raw/master/examples/fpga_zip_projects/fpga_example_project_ok.zip","type": "fpga"}' http://localhost:3000/build
