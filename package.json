@@ -1,0 +1,11 @@
+{
+  "name": "wyliodrin_fpga_service",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node service.js"
+  },
+  "dependencies": {
+  	"express": "3.2.6"
+  }
+}
