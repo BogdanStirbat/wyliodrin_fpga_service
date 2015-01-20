@@ -1,6 +1,8 @@
 var express = require("express");
 var app = express();
 var path = require("path");
+var child_process = require('child_process');
+var exec = require('child_process').exec;
 var application_root = __dirname;
 
 var settings = require ('./settings.js');
@@ -18,9 +20,24 @@ app.get("/", function(req, res){
 });
 
 app.post("/build", function(req, res){
-	console.log(req.body);
-	console.log(req.body.archive_url);
-	console.log(req.body.type);
+	var archive_url = "";
+	try {
+		archive_url = req.body.archive_url;
+		console.log("started build: " + archive_url);
+		var random_folder = "random_folder";
+		var command = "sh build_archive.sh " + settings.buildFolder + " " + random_folder + " " + archive_url;
+		var command_timeout = 1000 * settings.sec_to_timeout;
+		exec(command, {timeout: command_timeout}, function(error, stdout, stderr){
+			console.log("stdout: " + stdout);
+			console.log("stderr: " + stderr);
+			if (error != null) {
+				console.log('exec error: ', error);
+			}
+		});
+	} catch(e) {
+		console.log("error while build:" + e);
+		res.send("ok build did not completed successfully"); 
+	}
 	res.send("ok build");
 });
 
