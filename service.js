@@ -21,6 +21,56 @@ app.get("/", function(req, res){
 	res.send("wyliodrin_fpga_service started");
 });
 
+function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
+	var result;
+	var output_lines = stdout.toString().split('\n');
+	console.log("output_lines: " + output_lines);
+	var build_result;
+	var build_time;
+	var dir_of_build;
+	var bitfile_name;
+	var bitfile_full_name;
+	var last_build_result = "last build result:"
+	var resulted_bit_file = "resulted .bit file:";
+	var current_working_directory = "current working directory:";
+	var user_time = "user";
+	for(var i=0; i<output_lines.length; i++) {
+		var output_line = output_lines[i];
+		console.log("current_line: " + output_line);
+		if (output_line.indexOf(last_build_result) == 0) {
+			build_result = output_line.substring(last_build_result.length);
+		}
+		if (output_line.indexOf(resulted_bit_file) == 0) {
+			bitfile_name = output_line.substring(resulted_bit_file.length);
+		}
+		if (output_line.indexOf(current_working_directory) == 0) {
+			dir_of_build = output_line.substring(current_working_directory.length);
+		}
+		if (output_line.indexOf(user_time) == 0) {
+			build_time = output_line.substring(user_time.length);
+		}
+	}
+	if (build_result) {
+		build_result = build_result.trim();
+	}
+	if (bitfile_name) {
+		bitfile_name = bitfile_name.trim();
+	}
+	if (dir_of_build) {
+		dir_of_build = dir_of_build.trim();
+	}
+	if (build_time) {
+		build_time = build_time.trim();
+	}
+
+	bitfile_full_name = dir_of_build + "/" + bitfile_name;
+	console.log('build_result: ' + build_result);
+	console.log('build_time: ' + build_time);
+	console.log('bitfile_full_name: ' + bitfile_full_name);
+
+	return result;
+}
+
 app.post("/build", function(req, res){
 	var archive_url = "";
 	try {
@@ -38,6 +88,7 @@ app.post("/build", function(req, res){
 				console.log('exec error: ');
 				console.log(error);
 			}
+			parseBuildOutputAndCreateResultAsJson(stdout, stderr);
 		});
 	} catch(e) {
 		console.log("error while build:" + e);
