@@ -3,9 +3,11 @@ var app = express();
 var path = require("path");
 var child_process = require('child_process');
 var exec = require('child_process').exec;
+var random_string = require('./random_string.js');
 var application_root = __dirname;
 
 var settings = require ('./settings.js');
+var random_string = require('./random_string.js');
 
 app.configure(function () {
     app.use(express.bodyParser());
@@ -24,14 +26,17 @@ app.post("/build", function(req, res){
 	try {
 		archive_url = req.body.archive_url;
 		console.log("started build: " + archive_url);
-		var random_folder = "random_folder";
+		var random_folder = random_string.createRandomString(settings.nr_characters_in_random_folder);
 		var command = "sh build_archive.sh " + settings.buildFolder + " " + random_folder + " " + archive_url;
 		var command_timeout = 1000 * settings.sec_to_timeout;
 		exec(command, {timeout: command_timeout}, function(error, stdout, stderr){
-			console.log("stdout: " + stdout);
-			console.log("stderr: " + stderr);
+			console.log("stdout: ");
+			console.log(stdout);
+			console.log("stderr: ");
+			console.log(stderr);
 			if (error != null) {
-				console.log('exec error: ', error);
+				console.log('exec error: ');
+				console.log(error);
 			}
 		});
 	} catch(e) {
