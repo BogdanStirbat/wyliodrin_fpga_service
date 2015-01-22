@@ -22,7 +22,7 @@ app.get("/", function(req, res){
 });
 
 function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
-	var result;
+	var result = {};
 	var output_lines = stdout.toString().split('\n');
 	console.log("output_lines: " + output_lines);
 	var build_result;
@@ -68,6 +68,10 @@ function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 	console.log('build_time: ' + build_time);
 	console.log('bitfile_full_name: ' + bitfile_full_name);
 
+	result["build_result"] = build_result;
+	result["build_time"] = build_time;
+	result["bitfile_url"] = bitfile_full_name;
+
 	return result;
 }
 
@@ -88,7 +92,8 @@ app.post("/build", function(req, res){
 				console.log('exec error: ');
 				console.log(error);
 			}
-			parseBuildOutputAndCreateResultAsJson(stdout, stderr);
+			var result = parseBuildOutputAndCreateResultAsJson(stdout, stderr);
+			res.send(result);
 		});
 	} catch(e) {
 		console.log("error while build:" + e);
