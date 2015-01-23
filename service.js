@@ -9,18 +9,6 @@ var application_root = __dirname;
 var settings = require ('./settings.js');
 var random_string = require('./random_string.js');
 
-app.configure(function () {
-    app.use(express.bodyParser());
-    app.use(express.methodOverride());
-    app.use(app.router);
-    app.use(express.static(path.join(application_root, "public")));
-    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-});
-
-app.get("/", function(req, res){
-	res.send("wyliodrin_fpga_service started");
-});
-
 function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 	var result = {};
 	var output_lines = stdout.toString().split('\n');
@@ -75,10 +63,98 @@ function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 	return result;
 }
 
+var running_builds = [];
+var finished_builds = [];
+
+function listContainsBuild(listOfBuilds, archive_url) {
+	if (!listOfBuilds) {
+		return false;
+	}
+	if(listOfBuilds.length == 0) {
+		return false;
+	}
+	for(var i=0; i<listOfBuilds.length; i++) {
+		var current_build = listOfBuilds[i];
+		if (current_build.url==archive_url) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function findBuildInList(listOfBuilds, archive_url) {
+	var empty_result = {};
+	if (!listOfBuilds) {
+		return empty_result;
+	}
+	if (listOfBuilds.length == 0) {
+		return empty_result;
+	}
+	for(var i=0; i<listOfBuilds.length; i++) {
+		var current_build = listOfBuilds[i];
+		if (current_build.url==archive_url) {
+			return current_build;
+		}
+	}
+	return empty_result;
+}
+
+function findIndexOfBuildInList(listOfBuilds, archive_url) {
+	if (!listOfBuilds) {
+		return -1;
+	}
+	if (listOfBuilds.length == 0) {
+		return -1;
+	}
+	for (var i=0; i<listOfBuilds.length; i++) {
+		var current_build = listOfBuilds[i];
+		if (current_build.url==archive_url) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+function removeBuildFromList(listOfBuilds, archive_url) {
+	var build_index = findIndexOfBuildInList(listOfBuilds, archive_url);
+	if (build_index >= 0 && build_index < listOfBuilds.length) {
+		listOfBuilds.splice(build_index, 1);
+	}
+}
+ 
+app.configure(function () {
+    app.use(express.bodyParser());
+    app.use(express.methodOverride());
+    app.use(app.router);
+    app.use(express.static(path.join(application_root, "public")));
+    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+});
+
+app.get("/", function(req, res){
+	res.send("wyliodrin_fpga_service started");
+});
+
 app.post("/build", function(req, res){
 	var archive_url = "";
 	try {
 		archive_url = req.body.archive_url;
+		if (running_builds.length >= settings.nr_parallel_builds) {
+			var response = {"status": "build not started, server too busy", "url": archive_url};
+	        res.send(response);
+			return;
+		}
+		if (listContainsBuild(running_builds, archive_url)) {
+			var response = {"status": "build running, not finished", "url": archive_url};
+	        res.send(response);
+			return;
+		}
+		if (listContainsBuild(finished_builds, archive_url)) {
+			var build_info = findBuildInList(finished_builds, archive_url);
+			var build_result = build_info.result;
+			var response = {"status": "build completed", "url": archive_url, "result": build_result};
+	        res.send(response);
+			return;
+		}
 		console.log("started build: " + archive_url);
 		var random_folder = random_string.createRandomString(settings.nr_characters_in_random_folder);
 		var command = "sh build_archive.sh " + settings.buildFolder + " " + random_folder + " " + archive_url;
@@ -93,13 +169,21 @@ app.post("/build", function(req, res){
 				console.log(error);
 			}
 			var result = parseBuildOutputAndCreateResultAsJson(stdout, stderr);
-			res.send(result);
+			var build_info = findBuildInList(running_builds, archive_url);
+			build_info.status = "FINISHED";
+			build_info.result = result;
+			finished_builds.push(build_info);
+			removeBuildFromList(running_builds, archive_url);
 		});
+		var build_info = {"url": archive_url, "build_path": settings.buildFolder + "/" + random_folder, "status": "IN_PROGRESS", "result": {}};
+		running_builds.push(build_info);
+		var response = {"status": "build started", "url": archive_url};
+	    res.send(response);
 	} catch(e) {
 		console.log("error while build:" + e);
-		res.send("ok build did not completed successfully"); 
+		var response = {"status": "error on request", "url": archive_url};
+		res.send(response);
 	}
-	res.send("ok build");
 });
 
 app.get("/load", function(req, res){
