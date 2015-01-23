@@ -204,6 +204,7 @@ app.post("/clean", function(req, res){
 					console.log(error);
 				}
 			});
+			removeBuildFromList(finished_builds, archive_url);
 			var response = {"status": "cleanup performed", "url": archive_url};
 	        res.send(response);
 			return;
