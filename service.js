@@ -10,6 +10,29 @@ var settings = require ('./settings.js');
 var random_string = require('./random_string.js');
 var build_state = require('./build_state.js');
 
+function findValueOfTag(build_time_raw, text_id) {
+	var result = "";
+	var pos = build_time_raw.indexOf(text_id);
+	var sub_text = build_time_raw.substring(0, pos);
+	var sub_pos = sub_text.lastIndexOf(' ');
+	if (sub_pos<0) {
+		sub_pos = 0;
+	} else {
+		sub_pos++;
+	}
+	result = sub_text.substring(sub_pos, sub_text.length);
+	return result;
+}
+
+function parseBuildTime(build_time_raw) {
+	var result = {};
+	result["user"] = findValueOfTag(build_time_raw, "user");
+	result["system"] = findValueOfTag(build_time_raw, "system");
+	result["elapsed"] = findValueOfTag(build_time_raw, "elapsed");
+	result["CPU"] = findValueOfTag(build_time_raw, "CPU");
+	return result;
+}
+
 function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 	var result = {};
 	var output_lines = stdout.toString().split('\n');
@@ -48,7 +71,7 @@ function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 		dir_of_build = dir_of_build.trim();
 	}
 	if (build_time) {
-		build_time = build_time.trim();
+		build_time = parseBuildTime(build_time.trim());
 	}
 
 	bitfile_full_name = dir_of_build + "/" + bitfile_name;
