@@ -185,6 +185,41 @@ app.post("/build", function(req, res){
 	}
 });
 
+app.post("/clean", function(req, res){
+	var archive_url = "";
+	try {
+		archive_url = req.body.archive_url;
+		if (listContainsBuild(finished_builds, archive_url)) {
+			var build_info = findBuildInList(finished_builds, archive_url);
+			var build_path = build_info.build_path;
+			var remove_folder_command = "rm -r " + build_path;
+			console.log("remove folder command: " + remove_folder_command);
+			exec(remove_folder_command, function(error, stdout, stderr){
+				console.log("stdout:");
+				console.log(stdout);
+				console.log("stderr:");
+				console.log(stderr);
+				if (error) {
+					console.log("error:");
+					console.log(error);
+				}
+			});
+			var response = {"status": "cleanup performed", "url": archive_url};
+	        res.send(response);
+			return;
+		} else {
+			var response = {"status": "finished build not existent", "url": archive_url};
+	        res.send(response);
+			return;
+		}
+
+	} catch(e) {
+		console.log("error while build:" + e);
+		var response = {"status": "error on request", "url": archive_url};
+		res.send(response);
+	}
+});
+
 app.get("/load", function(req, res){
 	var number_of_builds = running_builds.length;
 	var max_number_of_builds = settings.nr_parallel_builds;
