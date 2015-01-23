@@ -8,6 +8,7 @@ var application_root = __dirname;
 
 var settings = require ('./settings.js');
 var random_string = require('./random_string.js');
+var build_state = require('./build_state.js');
 
 function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 	var result = {};
@@ -62,65 +63,6 @@ function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 	return result;
 }
 
-var running_builds = [];
-var finished_builds = [];
-
-function listContainsBuild(listOfBuilds, archive_url) {
-	if (!listOfBuilds) {
-		return false;
-	}
-	if(listOfBuilds.length == 0) {
-		return false;
-	}
-	for(var i=0; i<listOfBuilds.length; i++) {
-		var current_build = listOfBuilds[i];
-		if (current_build.url==archive_url) {
-			return true;
-		}
-	}
-	return false;
-}
-
-function findBuildInList(listOfBuilds, archive_url) {
-	var empty_result = {};
-	if (!listOfBuilds) {
-		return empty_result;
-	}
-	if (listOfBuilds.length == 0) {
-		return empty_result;
-	}
-	for(var i=0; i<listOfBuilds.length; i++) {
-		var current_build = listOfBuilds[i];
-		if (current_build.url==archive_url) {
-			return current_build;
-		}
-	}
-	return empty_result;
-}
-
-function findIndexOfBuildInList(listOfBuilds, archive_url) {
-	if (!listOfBuilds) {
-		return -1;
-	}
-	if (listOfBuilds.length == 0) {
-		return -1;
-	}
-	for (var i=0; i<listOfBuilds.length; i++) {
-		var current_build = listOfBuilds[i];
-		if (current_build.url==archive_url) {
-			return i;
-		}
-	}
-	return -1;
-}
-
-function removeBuildFromList(listOfBuilds, archive_url) {
-	var build_index = findIndexOfBuildInList(listOfBuilds, archive_url);
-	if (build_index >= 0 && build_index < listOfBuilds.length) {
-		listOfBuilds.splice(build_index, 1);
-	}
-}
- 
 app.configure(function () {
     app.use(express.bodyParser());
     app.use(express.methodOverride());
@@ -137,18 +79,18 @@ app.post("/build", function(req, res){
 	var archive_url = "";
 	try {
 		archive_url = req.body.archive_url;
-		if (running_builds.length >= settings.nr_parallel_builds) {
+		if (build_state.getNumberOfRunningBuilds() >= settings.nr_parallel_builds) {
 			var response = {"status": "build not started, server too busy", "url": archive_url};
 	        res.send(response);
 			return;
 		}
-		if (listContainsBuild(running_builds, archive_url)) {
+		if (build_state.isBuildInRunningBuilds(archive_url)) {
 			var response = {"status": "build running, not finished", "url": archive_url};
 	        res.send(response);
 			return;
 		}
-		if (listContainsBuild(finished_builds, archive_url)) {
-			var build_info = findBuildInList(finished_builds, archive_url);
+		if (build_state.isBuildInFinishedBuilds(archive_url)) {
+			var build_info = build_state.getBuildFromFinishedBuilds(archive_url);
 			var build_result = build_info.result;
 			var response = {"status": "build completed", "url": archive_url, "result": build_result};
 	        res.send(response);
@@ -168,14 +110,14 @@ app.post("/build", function(req, res){
 				console.log(error);
 			}
 			var result = parseBuildOutputAndCreateResultAsJson(stdout, stderr);
-			var build_info = findBuildInList(running_builds, archive_url);
+			var build_info = build_state.getBuildFromRunningBuilds(archive_url);
 			build_info.status = "FINISHED";
 			build_info.result = result;
-			finished_builds.push(build_info);
-			removeBuildFromList(running_builds, archive_url);
+			build_state.pushBuildToFinishedBuilds(build_info);
+			build_state.removeBuildFromRunningBuilds(archive_url);
 		});
 		var build_info = {"url": archive_url, "build_path": settings.buildFolder + "/" + random_folder, "status": "IN_PROGRESS", "result": {}};
-		running_builds.push(build_info);
+		build_state.pushBuildToRunningBuilds(build_info);
 		var response = {"status": "build started", "url": archive_url};
 	    res.send(response);
 	} catch(e) {
@@ -189,8 +131,8 @@ app.post("/clean", function(req, res){
 	var archive_url = "";
 	try {
 		archive_url = req.body.archive_url;
-		if (listContainsBuild(finished_builds, archive_url)) {
-			var build_info = findBuildInList(finished_builds, archive_url);
+		if (build_state.isBuildInFinishedBuilds(archive_url)) {
+			var build_info = build_state.getBuildFromFinishedBuilds(archive_url);
 			var build_path = build_info.build_path;
 			var remove_folder_command = "rm -r " + build_path;
 			console.log("remove folder command: " + remove_folder_command);
@@ -204,7 +146,7 @@ app.post("/clean", function(req, res){
 					console.log(error);
 				}
 			});
-			removeBuildFromList(finished_builds, archive_url);
+			build_state.removeBuildFromFinishedBuilds(archive_url);
 			var response = {"status": "cleanup performed", "url": archive_url};
 	        res.send(response);
 			return;
@@ -222,7 +164,7 @@ app.post("/clean", function(req, res){
 });
 
 app.get("/load", function(req, res){
-	var number_of_builds = running_builds.length;
+	var number_of_builds = build_state.getNumberOfRunningBuilds();
 	var max_number_of_builds = settings.nr_parallel_builds;
 	var result={"number_of_builds":number_of_builds, "max_number_of_builds":max_number_of_builds};  
 	res.send(result);
