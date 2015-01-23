@@ -6,3 +6,6 @@ curl -X POST  -H "Content-Type: application/json" -d '{"archive_url": "https://g
 
 # post an valid POST request to server; this time, project fails to build
 curl -X POST  -H "Content-Type: application/json" -d '{"archive_url": "https://github.com/BogdanStirbat/wyliodrin_fpga_service/raw/master/examples/fpga_zip_projects/fpga_example_project_nok.zip","type": "fpga"}' http://localhost:3000/build
+
+# post an valid POST request to server; this time, project fails to build
+curl -X GET http://localhost:3000/load

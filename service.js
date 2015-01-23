@@ -186,7 +186,10 @@ app.post("/build", function(req, res){
 });
 
 app.get("/load", function(req, res){
-	res.send("ok load");
+	var number_of_builds = running_builds.length;
+	var max_number_of_builds = settings.nr_parallel_builds;
+	var result={"number_of_builds":number_of_builds, "max_number_of_builds":max_number_of_builds};  
+	res.send(result);
 });
 
 console.log("buildFolder: " + settings.buildFolder);
