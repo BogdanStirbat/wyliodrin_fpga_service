@@ -21,7 +21,7 @@ function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 	var last_build_result = "last build result:"
 	var resulted_bit_file = "resulted .bit file:";
 	var current_working_directory = "current working directory:";
-	var user_time = "user";
+	var time = "last build time:";
 	for(var i=0; i<output_lines.length; i++) {
 		var output_line = output_lines[i];
 		console.log("current_line: " + output_line);
@@ -34,8 +34,8 @@ function parseBuildOutputAndCreateResultAsJson(stdout, stderr) {
 		if (output_line.indexOf(current_working_directory) == 0) {
 			dir_of_build = output_line.substring(current_working_directory.length);
 		}
-		if (output_line.indexOf(user_time) == 0) {
-			build_time = output_line.substring(user_time.length);
+		if (output_line.indexOf(time) == 0) {
+			build_time = output_line.substring(time.length);
 		}
 	}
 	if (build_result) {

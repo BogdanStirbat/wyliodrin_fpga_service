@@ -18,7 +18,8 @@ UNZIPPED_FOLDER=`ls -d */`
 cd $UNZIPPED_FOLDER
 
 echo "starting building ..."
-time make > /dev/null 2>&1
+TIME=$( { time make > /dev/null; } 2>&1 )
 echo "last build result: $?"
+echo "last build time:  $TIME"
 echo "resulted .bit file: " `ls | grep ".bit$"`
 echo "current working directory: " `pwd`
